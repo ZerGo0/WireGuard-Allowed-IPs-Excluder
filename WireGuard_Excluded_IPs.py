@@ -39,5 +39,6 @@ for arg in sys.argv[1:]:
     listUpdatedMainBlockRange = listMainBlockRange
 
 listMainBlockRange.reverse()
-print("{}".format(str(list(listMainBlockRange)).replace("[", "").replace(
+print("\n\n\n")
+print("AllowedIPs = {}, ::/1, 8000::/1".format(str(list(listMainBlockRange)).replace("[", "").replace(
     "IPv4Network('", "").replace("')", "").replace("]", "")))
