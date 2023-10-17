@@ -82,7 +82,7 @@ def main():
         # If no arguments, proceed with interactive mode
         print("You can optionally provide command-line arguments as follows:")
         print("WireGuard_Excluded_IPs.py <AllowedIPs> <DisallowedIPs>")
-        print("Example: WireGuard_Excluded_IPs.py '0.0.0.0/0' '10.0.0.0/8,127.0.0.0/8,172.16.0.0/12,192.168.0.0/16'\n")
+        print("Example: WireGuard_Excluded_IPs.py '0.0.0.0/0' '10.0.0.0/8,127.0.0.0/8,172.16.0.0/12,192.168.0.0/16'")
         print("If no arguments are provided, you will be prompted for input.\n")
 
         allowed_networks = get_input_and_parse("Enter the Allowed IPs, comma separated (e.g., 0.0.0.0/0):\n")
