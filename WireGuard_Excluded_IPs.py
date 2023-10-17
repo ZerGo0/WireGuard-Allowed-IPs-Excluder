@@ -1,44 +1,58 @@
 import ipaddress
-import re
-import sys
 
-arguments = sys.argv[1:]
-if len(arguments) is 0:
-    print("Syntax: WireGuard_Excluded_IPs.py 8.8.8.8 (1.1.1.1)")
-    exit()
+def get_ip_networks_from_input(prompt):
+    while True:
+        ip_networks = []
+        invalid_entries = []
 
-for arg in sys.argv[1:]:
-    if re.search("^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$", arg) is None:
-        print("Invalid IP Address: {}".format(arg))
-        exit()
-        break
-    pass
+        print(prompt)
+        input_str = input()
 
-mainBlockRange = ipaddress.ip_network('0.0.0.0/0')
-listUpdatedMainBlockRange = list(mainBlockRange.address_exclude(
-    ipaddress.ip_network('{}/32'.format(sys.argv[1]))))
-listUpdatedMainBlockRange.reverse()
-listMainBlockRange = listUpdatedMainBlockRange
+        for ip in input_str.split(","):
+            ip = ip.strip()
+            if ip:  # avoid empty strings
+                try:
+                    # Attempt to create an ip_network object. Works for both IPv4 and IPv6.
+                    network = ipaddress.ip_network(ip, strict=False)
+                    ip_networks.append(network)
+                except ValueError as e:
+                    # If an error occurs, print the error and add to the list of invalid entries
+                    print(f"Error: Invalid IP address/network: '{ip}'. Error details: {e}")
+                    invalid_entries.append(ip)
 
-for arg in sys.argv[1:]:
-    tempIP = ipaddress.IPv4Address(arg)
-    print("tempIP: {}".format(tempIP))
-    i = 0
+        if not invalid_entries:
+            return ip_networks  # return the list if all entries were valid
+        else:
+            print(f"Invalid entries: {', '.join(invalid_entries)}. Please re-enter the entire list of IPs.")
 
-    for tempBlockRange in listUpdatedMainBlockRange:
-        print("tempBlockRange: {}".format(tempBlockRange))
-        if tempIP in tempBlockRange:
-            print("tempIP: {} | tempBlockRange: {}".format(
-                tempIP, tempBlockRange))
-            listMainBlockRange.remove(tempBlockRange)
-            tempRange = ipaddress.ip_network(tempBlockRange)
-            listMainBlockRange.insert(i, list(
-                tempRange.address_exclude(ipaddress.ip_network('{}/32'.format(arg)))))
-        i += 1
+def main():
+    print("This script calculates allowed IP ranges by excluding disallowed ranges from the allowed ones.\n")
 
-    listUpdatedMainBlockRange = listMainBlockRange
+    # Get the Allowed IPs from the user with an example
+    allowed_ips = get_ip_networks_from_input("Enter the Allowed IPs, comma separated, ex: 0.0.0.0/0:")
 
-listMainBlockRange.reverse()
-print("\n\n\n")
-print("AllowedIPs = {}, ::/1, 8000::/1".format(str(list(listMainBlockRange)).replace("[", "").replace(
-    "IPv4Network('", "").replace("')", "").replace("]", "")))
+    # Get the Disallowed IPs from the user with an example
+    disallowed_ips = get_ip_networks_from_input("Enter the Disallowed IPs, comma separated, ex: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 127.0.0.0/8:")
+
+    # Starting with the allowed networks, we'll subtract the disallowed ones
+    remaining_networks = allowed_ips
+
+    for disallowed in disallowed_ips:
+        temp_remaining_networks = []
+        for net in remaining_networks:
+            if net.overlaps(disallowed):
+                # If there's an overlap, we exclude the disallowed network and add the remaining ones
+                temp_remaining_networks.extend(net.address_exclude(disallowed))
+            else:
+                # If there's no overlap, we keep the network as is
+                temp_remaining_networks.append(net)
+        remaining_networks = temp_remaining_networks
+
+    # Print the final list of allowed IPs
+    if remaining_networks:
+        print("\nAllowedIPs =", ', '.join(str(net) for net in sorted(remaining_networks)))
+    else:
+        print("No remaining allowed IPs after exclusions.")
+
+if __name__ == "__main__":
+    main()
