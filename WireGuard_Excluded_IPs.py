@@ -37,19 +37,18 @@ def get_input_and_parse(prompt):
 
 def exclude_networks(allowed_networks, disallowed_networks):
     remaining_networks = set(allowed_networks)
-    
+
     for disallowed in disallowed_networks:
         new_remaining_networks = set()
-        
+
         for allowed in remaining_networks:
-            if allowed.version == disallowed.version:  # Ensure we're comparing the same IP versions
+            if allowed.version == disallowed.version:
                 if disallowed.subnet_of(allowed):
                     # If the disallowed network is a subnet of the allowed network, exclude it
                     new_remaining_networks.update(allowed.address_exclude(disallowed))
                 elif allowed.overlaps(disallowed):
-                    # If there's an overlap but no network is a subnet of the other, we need to handle this case separately.
-                    # For the scope of this fix, we're not handling partial overlaps.
-                    continue
+                    # Handle partial overlap
+                    new_remaining_networks.update(handle_partial_overlap(allowed, disallowed))
                 else:
                     # If there's no overlap, keep the allowed network as it is.
                     new_remaining_networks.add(allowed)
@@ -61,6 +60,33 @@ def exclude_networks(allowed_networks, disallowed_networks):
         remaining_networks = new_remaining_networks
 
     return remaining_networks
+
+def handle_partial_overlap(allowed, disallowed):
+    # This function will handle the case of a partial overlap and return the non-overlapping portions of the allowed network.
+    non_overlapping_networks = []
+
+    # Calculate the IPs for the allowed and disallowed networks
+    allowed_ips = list(allowed.hosts())
+    disallowed_ips = set(disallowed.hosts())  # Use a set for faster lookup
+
+    # Filter out the disallowed IPs
+    allowed_ips = [ip for ip in allowed_ips if ip not in disallowed_ips]
+
+    if not allowed_ips:
+        # If no IPs are left, there's nothing to add
+        return non_overlapping_networks
+
+    # Create new network(s) from the remaining IPs. 
+    # This is a simplistic way and works on individual IPs, not ranges.
+    # You might need a more efficient way to handle ranges of IPs, especially for large networks.
+    for ip in allowed_ips:
+        if ip.version == 4:
+            non_overlapping_networks.append(ipaddress.ip_network(f"{ip}/32", strict=False))
+        else:
+            non_overlapping_networks.append(ipaddress.ip_network(f"{ip}/128", strict=False))
+
+    return non_overlapping_networks
+
 
 
 def sort_networks(networks):
