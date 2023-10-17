@@ -45,7 +45,7 @@ def main():
             return
     else:
         print("You can optionally provide command-line arguments as follows:")
-        print("script.py <AllowedIPs> <DisallowedIPs>")
+        print("WireGuard-Allowed-IPs-Excluders.py <AllowedIPs> <DisallowedIPs>")
         print("Example: WireGuard-Allowed-IPs-Excluders.py '0.0.0.0/0' '10.0.0.0/8,127.0.0.0/8,172.16.0.0/12,192.168.0.0/16'")
         print("\nIf no arguments are provided, you will be prompted for input.\n")
 
