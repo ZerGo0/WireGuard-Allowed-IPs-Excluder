@@ -56,12 +56,30 @@ def sort_networks(networks):
     return sorted(ipv4) + sorted(ipv6)
 
 def main():
-    if len(sys.argv) == 3:
-        allowed_input = sys.argv[1]
-        disallowed_input = sys.argv[2]
-        allowed_networks = parse_ip_networks(allowed_input.split(','))
-        disallowed_networks = parse_ip_networks(disallowed_input.split(','))
+    # Check if there are command-line arguments
+    if len(sys.argv) > 3:
+        print("Error: Too many arguments. Only two arguments are allowed.")
+        print("WireGuard_Excluded_IPs.py <AllowedIPs> <DisallowedIPs>")
+        sys.exit(1)  # Exit with an error code
+
+    elif len(sys.argv) == 3:
+        allowed_input = sys.argv[1]  # The first argument after the script name
+        disallowed_input = sys.argv[2]  # The second argument after the script name
+
+        # Directly parse the command-line arguments
+        allowed_networks, invalid_allowed_ips = parse_ip_networks(allowed_input)
+        disallowed_networks, invalid_disallowed_ips = parse_ip_networks(disallowed_input)
+
+        # If there are invalid IPs, print them and exit
+        if invalid_allowed_ips or invalid_disallowed_ips:
+            if invalid_allowed_ips:
+                print("Invalid Allowed IPs: " + ", ".join(invalid_allowed_ips))
+            if invalid_disallowed_ips:
+                print("Invalid Disallowed IPs: " + ", ".join(invalid_disallowed_ips))
+            sys.exit(1)
+
     else:
+        # If no arguments, proceed with interactive mode
         print("You can optionally provide command-line arguments as follows:")
         print("WireGuard_Excluded_IPs.py <AllowedIPs> <DisallowedIPs>")
         print("Example: WireGuard_Excluded_IPs.py '0.0.0.0/0' '10.0.0.0/8,127.0.0.0/8,172.16.0.0/12,192.168.0.0/16'\n")
