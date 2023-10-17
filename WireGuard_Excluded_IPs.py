@@ -1,77 +1,82 @@
 import ipaddress
 import sys
 
-def get_ip_networks(input_str):
-    ip_networks = []
+def parse_ip_networks(ip_list):
+    ipv4, ipv6 = [], []
     invalid_entries = []
 
-    for ip in input_str.split(","):
-        ip = ip.strip()
-        if ip:  # avoid empty strings
-            try:
-                # Attempt to create an ip_network object. Works for both IPv4 and IPv6.
+    for ip in ip_list:
+        ip = ip.strip()  # Ensure any extra spaces are removed
+        try:
+            if '/' in ip:
+                # If there's a subnet mask, parse it as a network
                 network = ipaddress.ip_network(ip, strict=False)
-                ip_networks.append(network)
-            except ValueError:
-                # If an error occurs, add to the list of invalid entries
-                invalid_entries.append(ip)
+            else:
+                # If there's no subnet mask, parse it as an IP and then get its respective network
+                ip_obj = ipaddress.ip_address(ip)
+                if ip_obj.version == 4:
+                    network = ipaddress.ip_network(ip + '/32', strict=False)  # for IPv4
+                else:
+                    network = ipaddress.ip_network(ip + '/128', strict=False)  # for IPv6
 
-    return ip_networks, invalid_entries
+            if network.version == 4:
+                ipv4.append(network)
+            else:
+                ipv6.append(network)
+        except ValueError:
+            # If an error occurs, add the entry to a list of invalid entries
+            invalid_entries.append(ip)
 
-def get_input(prompt):
-    while True:
-        input_str = input(prompt)
-        ip_networks, invalid_entries = get_ip_networks(input_str)
+    if invalid_entries:
+        # If there are any invalid entries, print them and return None to signal an error
+        for entry in invalid_entries:
+            print(f"Invalid IP or subnet: {entry}")
+        return None
 
-        if invalid_entries:
-            print(f"Invalid entries detected: {', '.join(invalid_entries)}. Please try again.")
-        else:
-            return ip_networks
+    return ipv4, ipv6
+
+
+
+def calculate_remaining_ips(allowed_ips, disallowed_ips):
+    remaining_ips = set(allowed_ips)
+    for disallowed in disallowed_ips:
+        remaining_ips -= set(disallowed.address_exclude(allowed) for allowed in allowed_ips if allowed.overlaps(disallowed))
+    return remaining_ips
 
 def main():
-    allowed_ips = []
-    disallowed_ips = []
-
-    # Check if the arguments are passed
     if len(sys.argv) == 3:
-        allowed_ips, invalid_entries = get_ip_networks(sys.argv[1])
-        if invalid_entries:
-            print(f"Invalid Allowed IPs detected: {', '.join(invalid_entries)}")
-            return
-
-        disallowed_ips, invalid_entries = get_ip_networks(sys.argv[2])
-        if invalid_entries:
-            print(f"Invalid Disallowed IPs detected: {', '.join(invalid_entries)}")
-            return
+        allowed_input = sys.argv[1]
+        disallowed_input = sys.argv[2]
     else:
-        print("You can optionally provide command-line arguments as follows:")
-        print("WireGuard-Allowed-IPs-Excluders.py <AllowedIPs> <DisallowedIPs>")
-        print("Example: WireGuard-Allowed-IPs-Excluders.py '0.0.0.0/0' '10.0.0.0/8,127.0.0.0/8,172.16.0.0/12,192.168.0.0/16'")
+        print("\nYou can optionally provide command-line arguments as follows:")
+        print("WireGuard_Excluded_IPs.py <AllowedIPs> <DisallowedIPs>")
+        print("Example: WireGuard_Excluded_IPs.py '0.0.0.0/0' '10.0.0.0/8,127.0.0.0/8,172.16.0.0/12,192.168.0.0/16'")
         print("\nIf no arguments are provided, you will be prompted for input.\n")
 
-        # No arguments passed, ask for user input
-        allowed_ips = get_input("Enter the Allowed IPs, comma separated (e.g., 0.0.0.0/0):\n")
-        disallowed_ips = get_input("Enter the Disallowed IPs, comma separated (e.g., 10.0.0.0/8,127.0.0.0/8,172.16.0.0/12,192.168.0.0/16):\n")
+        allowed_input = input("Enter the Allowed IPs, comma separated (e.g., 0.0.0.0/0):\n")
+        disallowed_input = input("Enter the Disallowed IPs, comma separated (e.g., 10.0.0.0/8,127.0.0.0/8,172.16.0.0/12,192.168.0.0/16):\n")
 
-    # Process the IP networks
-    remaining_networks = allowed_ips
+    allowed_ips = parse_ip_networks(allowed_input.split(','))
+    disallowed_ips = parse_ip_networks(disallowed_input.split(','))
 
-    for disallowed in disallowed_ips:
-        temp_remaining_networks = []
+    if allowed_ips is None or disallowed_ips is None:
+        return
 
-        for net in remaining_networks:
-            if net.overlaps(disallowed):
-                temp_remaining_networks.extend(net.address_exclude(disallowed))
-            else:
-                temp_remaining_networks.append(net)
+    # Separate IPv4 and IPv6 for both allowed and disallowed IPs
+    allowed_ipv4, allowed_ipv6 = allowed_ips
+    disallowed_ipv4, disallowed_ipv6 = disallowed_ips
 
-        remaining_networks = temp_remaining_networks
+    # Calculate remaining IPs for IPv4 and IPv6 separately
+    remaining_ipv4 = calculate_remaining_ips(allowed_ipv4, disallowed_ipv4)
+    remaining_ipv6 = calculate_remaining_ips(allowed_ipv6, disallowed_ipv6)
 
-    # Print the final list of allowed IPs
-    if remaining_networks:
-        print("AllowedIPs =", ', '.join(str(net) for net in sorted(remaining_networks)))
-    else:
-        print("No remaining allowed IPs after exclusions.")
+    # Sort IPv4 and IPv6 addresses separately
+    sorted_remaining_ipv4 = sorted(remaining_ipv4)
+    sorted_remaining_ipv6 = sorted(remaining_ipv6)
+
+    # Concatenate the sorted lists and convert to strings
+    all_remaining_ips = [str(ip) for ip in sorted_remaining_ipv4 + sorted_remaining_ipv6]
+    print("AllowedIPs =", ', '.join(all_remaining_ips))
 
 if __name__ == "__main__":
     main()
