@@ -1,56 +1,75 @@
 import ipaddress
+import sys
 
-def get_ip_networks_from_input(prompt):
+def get_ip_networks(input_str):
+    ip_networks = []
+    invalid_entries = []
+
+    for ip in input_str.split(","):
+        ip = ip.strip()
+        if ip:  # avoid empty strings
+            try:
+                # Attempt to create an ip_network object. Works for both IPv4 and IPv6.
+                network = ipaddress.ip_network(ip, strict=False)
+                ip_networks.append(network)
+            except ValueError:
+                # If an error occurs, add to the list of invalid entries
+                invalid_entries.append(ip)
+
+    return ip_networks, invalid_entries
+
+def get_input(prompt):
     while True:
-        ip_networks = []
-        invalid_entries = []
+        input_str = input(prompt)
+        ip_networks, invalid_entries = get_ip_networks(input_str)
 
-        print(prompt)
-        input_str = input()
-
-        for ip in input_str.split(","):
-            ip = ip.strip()
-            if ip:  # avoid empty strings
-                try:
-                    # Attempt to create an ip_network object. Works for both IPv4 and IPv6.
-                    network = ipaddress.ip_network(ip, strict=False)
-                    ip_networks.append(network)
-                except ValueError as e:
-                    # If an error occurs, print the error and add to the list of invalid entries
-                    print(f"Error: Invalid IP address/network: '{ip}'. Error details: {e}")
-                    invalid_entries.append(ip)
-
-        if not invalid_entries:
-            return ip_networks  # return the list if all entries were valid
+        if invalid_entries:
+            print(f"Invalid entries detected: {', '.join(invalid_entries)}. Please try again.")
         else:
-            print(f"Invalid entries: {', '.join(invalid_entries)}. Please re-enter the entire list of IPs.")
+            return ip_networks
 
 def main():
-    print("This script calculates allowed IP ranges by excluding disallowed ranges from the allowed ones.\n")
+    allowed_ips = []
+    disallowed_ips = []
 
-    # Get the Allowed IPs from the user with an example
-    allowed_ips = get_ip_networks_from_input("Enter the Allowed IPs, comma separated, ex: 0.0.0.0/0:")
+    # Check if the arguments are passed
+    if len(sys.argv) == 3:
+        allowed_ips, invalid_entries = get_ip_networks(sys.argv[1])
+        if invalid_entries:
+            print(f"Invalid Allowed IPs detected: {', '.join(invalid_entries)}")
+            return
 
-    # Get the Disallowed IPs from the user with an example
-    disallowed_ips = get_ip_networks_from_input("Enter the Disallowed IPs, comma separated, ex: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 127.0.0.0/8:")
+        disallowed_ips, invalid_entries = get_ip_networks(sys.argv[2])
+        if invalid_entries:
+            print(f"Invalid Disallowed IPs detected: {', '.join(invalid_entries)}")
+            return
+    else:
+        print("You can optionally provide command-line arguments as follows:")
+        print("script.py <AllowedIPs> <DisallowedIPs>")
+        print("Example: WireGuard-Allowed-IPs-Excluders.py '0.0.0.0/0' '10.0.0.0/8,127.0.0.0/8,172.16.0.0/12,192.168.0.0/16'")
+        print("\nIf no arguments are provided, you will be prompted for input.\n")
 
-    # Starting with the allowed networks, we'll subtract the disallowed ones
+        # No arguments passed, ask for user input
+        allowed_ips = get_input("Enter the Allowed IPs, comma separated (e.g., 0.0.0.0/0):\n")
+        disallowed_ips = get_input("Enter the Disallowed IPs, comma separated (e.g., 10.0.0.0/8,127.0.0.0/8,172.16.0.0/12,192.168.0.0/16):\n")
+
+    # Process the IP networks
     remaining_networks = allowed_ips
 
     for disallowed in disallowed_ips:
         temp_remaining_networks = []
+
         for net in remaining_networks:
             if net.overlaps(disallowed):
-                # If there's an overlap, we exclude the disallowed network and add the remaining ones
                 temp_remaining_networks.extend(net.address_exclude(disallowed))
             else:
-                # If there's no overlap, we keep the network as is
                 temp_remaining_networks.append(net)
+
         remaining_networks = temp_remaining_networks
 
     # Print the final list of allowed IPs
     if remaining_networks:
-        print("\nAllowedIPs =", ', '.join(str(net) for net in sorted(remaining_networks)))
+        print("AllowedIPs =", ', '.join(str(net) for net in sorted(remaining_networks)))
     else:
         print("No remaining allowed IPs after exclusions.")
 
