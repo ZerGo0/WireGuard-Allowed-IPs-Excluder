@@ -20,14 +20,14 @@ BACKGROUND
 You use the `AllowedIPs` setting of WireGuard to configure which blocks of IP addresses should be routed through which remote WireGuard peers. If you want to access everything through a peer, configure its `AllowedIPs` setting to the following:
 
 ```
-AllowedIPs = 0.0.0.0/0, `::/0`
+AllowedIPs = 0.0.0.0/0, ::/0
 ```
 
 This indicates to WireGuard that all IPv4 addresses (`0.0.0.0/0`) and all IPv6 addresses (`::/0`) should be routed through the peer. Note that you can specify multiple blocks of addresses on the same line, separated by commas, like above; or you can specify them individually on separate lines, like below:
 
 ```
 AllowedIPs = 0.0.0.0/0
-AllowedIPs = `::/0`
+AllowedIPs = ::/0
 ```
 
 If you want to access just a single block of IP addresses through a WireGuard peer, like say a block of IP addresses at a remote site that range from `192.168.100.0` to `192.168.100.255`, you’d set the `AllowedIPs` for it to the following:
@@ -45,7 +45,7 @@ AllowedIPs = 192.168.100.0/24, 192.168.101.0/24
 This indicates to WireGuard that both the `192.168.100.0/24` and `192.168.101.0/24` blocks of IP addresses should be routed through the peer. If you want to access everything but a certain block of IP addresses through a WireGuard peer, you’d set the `AllowedIPs` for it to the following:
 
 ```
-AllowedIPs = 0.0.0.0/0, `::/0`
+AllowedIPs = 0.0.0.0/0, ::/0
 ```
 
 And then you’d add a route on your local system to access that block of IP addresses through your regular Internet connection, like so:
@@ -60,7 +60,7 @@ You’d replace `192.168.1.1` with the IP address of your regular Internet gatew
 But what if you want to access everything but certain blocks of IP addresses through a WireGuard peer? This is where it gets complicated, because you can’t just add a route on your local system for each block of IP addresses you don’t want to access through the peer, because your system will still send packets to those IP addresses to the peer if its `AllowedIPs` is set to the following:
 
 ```
-AllowedIPs = 0.0.0.0/0, `::/0`
+AllowedIPs = 0.0.0.0/0, ::/0
 ```
 
 Instead, you need to set the `AllowedIPs` for the peer to everything but those blocks of IP addresses. And this is where our `AllowedIPs` Calculator comes in: It lets you easily calculate the `AllowedIPs` setting for a WireGuard peer by subtracting the “disallowed” IP address blocks from the “allowed” IP address blocks.
@@ -73,7 +73,7 @@ For example, say you wanted to access everything but the `10.0.0.0/8` block of I
 And this is the result you’d get:
 
 ```
-AllowedIPs = 0.0.0.0/5, 8.0.0.0/7, 11.0.0.0/8, 12.0.0.0/6, 16.0.0.0/4, 32.0.0.0/3, 64.0.0.0/2, 128.0.0.0/1, `::/0`
+AllowedIPs = 0.0.0.0/5, 8.0.0.0/7, 11.0.0.0/8, 12.0.0.0/6, 16.0.0.0/4, 32.0.0.0/3, 64.0.0.0/2, 128.0.0.0/1, ::/0
 ```
 
 Or as another example, say you wanted to access everything but the standard private, local, or link-scoped IP address blocks through a WireGuard peer. You’d input the following into the Calculator:
