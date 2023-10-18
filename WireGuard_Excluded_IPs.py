@@ -36,6 +36,7 @@ def get_input_and_parse(prompt):
 
         # If there are invalid IPs, notify the user and continue the loop.
         print("Invalid IPs or subnets: " + ", ".join(invalid_ip_addresses))
+        print("Please try again. Ctrl+C to exit.")
 
     return networks
 
@@ -117,7 +118,7 @@ def sort_networks(networks):
     return ipv4_sorted + ipv6_sorted
 
 
-def main():
+def main(unittest=False):
     allowed_input = ""
     disallowed_input = ""
     allowed_networks = []
@@ -128,9 +129,9 @@ def main():
         allowed_input = sys.argv[1]
         disallowed_input = sys.argv[2]
     elif len(sys.argv) == 2:
-        allowed_input = sys.argv[1]
-    elif len(sys.argv) > 3:
-        print("Error: Too many arguments provided.")
+        disallowed_input = sys.argv[1]
+    else:
+        print("Wrong number of arguments provided, falling back to interactive mode.")
         # Reset inputs to fall back to interactive mode
         allowed_input = ""
         disallowed_input = ""
@@ -153,7 +154,7 @@ def main():
             )  # Reset to empty to trigger interactive mode for disallowed IPs
 
     # If inputs were invalid or not provided, switch to interactive mode.
-    if not allowed_networks:
+    if not allowed_networks and not len(sys.argv) == 2:
         allowed_networks = get_input_and_parse(
             "Enter the Allowed IPs, comma separated (e.g., 0.0.0.0/0):\n"
         )
@@ -174,11 +175,17 @@ def main():
         sys.exit(1)
 
     # Print the initial inputs and final result.
-    print("\nSummary:")
-    print("AllowedIPs    = " + ", ".join(map(str, allowed_networks)))
+    print("Input:")
+    print("AllowedIPs = " + ", ".join(map(str, allowed_networks)))
     print("DisallowedIPs = " + ", ".join(map(str, disallowed_networks)))
+    print()
     print("=======================")
-    print("AllowedIPs    = " + ", ".join(map(str, sorted_networks)))
+    print()
+    print("Output:")
+    print("AllowedIPs = " + ", ".join(map(str, sorted_networks)))
+
+    if unittest:
+        return sorted_networks
 
 
 if __name__ == "__main__":
