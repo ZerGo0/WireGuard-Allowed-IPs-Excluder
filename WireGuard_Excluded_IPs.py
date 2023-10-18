@@ -1,15 +1,16 @@
 import ipaddress
 import sys
 
+
 def parse_ip_networks(ip_list_str):
-    ip_list = ip_list_str.split(',')
+    ip_list = ip_list_str.split(",")
     networks = []
     invalid_ip_addresses = []  # List to store invalid IPs.
 
     for ip in ip_list:
         ip = ip.strip()
         try:
-            if '/' in ip:
+            if "/" in ip:
                 networks.append(ipaddress.ip_network(ip, strict=False))
             else:
                 ip_obj = ipaddress.ip_address(ip)
@@ -22,10 +23,13 @@ def parse_ip_networks(ip_list_str):
 
     return networks, invalid_ip_addresses  # Return both valid networks and invalid IPs.
 
+
 def get_input_and_parse(prompt):
     while True:  # Keep looping until we break out.
         user_input = input(prompt)
-        networks, invalid_ip_addresses = parse_ip_networks(user_input)  # Get both valid networks and invalid IPs.
+        networks, invalid_ip_addresses = parse_ip_networks(
+            user_input
+        )  # Get both valid networks and invalid IPs.
 
         if not invalid_ip_addresses:  # If there are no invalid IPs, break the loop.
             break
@@ -34,6 +38,7 @@ def get_input_and_parse(prompt):
         print("Invalid IPs or subnets: " + ", ".join(invalid_ip_addresses))
 
     return networks
+
 
 def exclude_networks(allowed_networks, disallowed_networks):
     remaining_networks = set(allowed_networks)
@@ -48,7 +53,9 @@ def exclude_networks(allowed_networks, disallowed_networks):
                     new_remaining_networks.update(allowed.address_exclude(disallowed))
                 elif allowed.overlaps(disallowed):
                     # Handle partial overlap
-                    new_remaining_networks.update(handle_partial_overlap(allowed, disallowed))
+                    new_remaining_networks.update(
+                        handle_partial_overlap(allowed, disallowed)
+                    )
                 else:
                     # If there's no overlap, keep the allowed network as it is.
                     new_remaining_networks.add(allowed)
@@ -60,6 +67,7 @@ def exclude_networks(allowed_networks, disallowed_networks):
         remaining_networks = new_remaining_networks
 
     return remaining_networks
+
 
 def handle_partial_overlap(allowed, disallowed):
     # This function will handle the case of a partial overlap and return the non-overlapping portions of the allowed network.
@@ -76,17 +84,20 @@ def handle_partial_overlap(allowed, disallowed):
         # If no IPs are left, there's nothing to add
         return non_overlapping_networks
 
-    # Create new network(s) from the remaining IPs. 
+    # Create new network(s) from the remaining IPs.
     # This is a simplistic way and works on individual IPs, not ranges.
     # You might need a more efficient way to handle ranges of IPs, especially for large networks.
     for ip in allowed_ips:
         if ip.version == 4:
-            non_overlapping_networks.append(ipaddress.ip_network(f"{ip}/32", strict=False))
+            non_overlapping_networks.append(
+                ipaddress.ip_network(f"{ip}/32", strict=False)
+            )
         else:
-            non_overlapping_networks.append(ipaddress.ip_network(f"{ip}/128", strict=False))
+            non_overlapping_networks.append(
+                ipaddress.ip_network(f"{ip}/128", strict=False)
+            )
 
     return non_overlapping_networks
-
 
 
 def sort_networks(networks):
@@ -105,9 +116,10 @@ def sort_networks(networks):
     # Combine the lists with all IPv4 addresses first, then IPv6
     return ipv4_sorted + ipv6_sorted
 
+
 def main():
-    allowed_input = ''
-    disallowed_input = ''
+    allowed_input = ""
+    disallowed_input = ""
     allowed_networks = []
     disallowed_networks = []
 
@@ -120,28 +132,36 @@ def main():
     elif len(sys.argv) > 3:
         print("Error: Too many arguments provided.")
         # Reset inputs to fall back to interactive mode
-        allowed_input = ''
-        disallowed_input = ''
+        allowed_input = ""
+        disallowed_input = ""
 
     # Validate and parse command line arguments or get user input if arguments are invalid or not provided.
     if allowed_input:
         allowed_networks, invalid_allowed = parse_ip_networks(allowed_input)
         if invalid_allowed:
             print("Invalid Allowed IPs: " + ", ".join(invalid_allowed))
-            allowed_networks = []  # Reset to empty to trigger interactive mode for allowed IPs
+            allowed_networks = (
+                []
+            )  # Reset to empty to trigger interactive mode for allowed IPs
 
     if disallowed_input:  # This ensures it won't run if there's no disallowed_input
         disallowed_networks, invalid_disallowed = parse_ip_networks(disallowed_input)
         if invalid_disallowed:
             print("Invalid Disallowed IPs: " + ", ".join(invalid_disallowed))
-            disallowed_networks = []  # Reset to empty to trigger interactive mode for disallowed IPs
+            disallowed_networks = (
+                []
+            )  # Reset to empty to trigger interactive mode for disallowed IPs
 
     # If inputs were invalid or not provided, switch to interactive mode.
     if not allowed_networks:
-        allowed_networks = get_input_and_parse("Enter the Allowed IPs, comma separated (e.g., 0.0.0.0/0):\n")
+        allowed_networks = get_input_and_parse(
+            "Enter the Allowed IPs, comma separated (e.g., 0.0.0.0/0):\n"
+        )
 
     if not disallowed_networks:
-        disallowed_networks = get_input_and_parse("Enter the Disallowed IPs, comma separated (e.g., 10.0.0.0/8,127.0.0.0/8,172.16.0.0/12,192.168.0.0/16):\n")
+        disallowed_networks = get_input_and_parse(
+            "Enter the Disallowed IPs, comma separated (e.g., 10.0.0.0/8,127.0.0.0/8,172.16.0.0/12,192.168.0.0/16):\n"
+        )
 
     # Process the IP networks.
     excluded_allowed_networks = exclude_networks(allowed_networks, disallowed_networks)
@@ -155,10 +175,11 @@ def main():
 
     # Print the initial inputs and final result.
     print("\nSummary:")
-    print("AllowedIPs    = " + ', '.join(map(str, allowed_networks)))
-    print("DisallowedIPs = " + ', '.join(map(str, disallowed_networks)))
+    print("AllowedIPs    = " + ", ".join(map(str, allowed_networks)))
+    print("DisallowedIPs = " + ", ".join(map(str, disallowed_networks)))
     print("=======================")
-    print("AllowedIPs    = " + ', '.join(map(str, sorted_networks)))
+    print("AllowedIPs    = " + ", ".join(map(str, sorted_networks)))
+
 
 if __name__ == "__main__":
     main()
