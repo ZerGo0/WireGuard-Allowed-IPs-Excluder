@@ -1,7 +1,10 @@
 # WireGuard-Allowed-IPs-Excluder
 Use the following form when you need to calculate complex AllowedIPs settings for a WireGuard peer, by subtracting the “disallowed” IP address blocks from the “allowed” IP address blocks.
 
+```
 Syntax: WireGuard-Allowed-IPs-Excluders.py [AllowedIPs] [DisallowedIPs]
+Example: python WireGuard-Allowed-IPs-Excluders.py "0.0.0.0/0" "192.168.0.0/16, 10.0.0.0/8"
+```
 
 For example, say you wanted to route everything in the `10.0.0.0/8` block of IP addresses through a WireGuard peer — except you also wanted to exclude the smaller `10.0.1.0/24` block from it. In the `Allowed IPs` field, input `10.0.0.0/8`; in the `Disallowed IPs` field, input `10.0.1.0/24`; and click the Calculate button. This is the result you’ll get (which is what you enter into your WireGuard config):
 
